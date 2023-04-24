@@ -26,6 +26,24 @@ pub struct Thing {
 	pub id: Id,
 }
 
+impl TryFrom<&str> for Thing {
+	type Error = &'static str;
+
+	/// Creates a Thing struct from a `table:id` string
+	fn try_from(input: &str) -> Result<Self, Self::Error> {
+		let parsed = input.split_once(":");
+
+		if let Some((tb, id)) = parsed {
+			return Ok(Self {
+				tb: tb.to_string(),
+				id: Id::from(id),
+			});
+		}
+
+		Err("Could not convert String into Thing")
+	}
+}
+
 impl From<(String, Id)> for Thing {
 	fn from((tb, id): (String, Id)) -> Self {
 		Self {
@@ -227,5 +245,35 @@ mod tests {
 				id: Id::Array(Array::from(vec![Value::from("GBR"), Value::from(2022)])),
 			}
 		);
+	}
+
+	#[test]
+	fn thing_try_from_string() {
+		let sql = "test:id";
+		let res = Thing::try_from(sql);
+
+		assert!(res.is_ok());
+
+		let out = res.unwrap();
+		assert_eq!(
+			out,
+			Thing {
+				tb: String::from("test"),
+				id: Id::from("id")
+			}
+		)
+	}
+
+	#[test]
+	fn thing_try_from_string_err() {
+		let sql = "test_id";
+		let res = Thing::try_from(sql);
+
+		assert!(res.is_err());
+
+		match res {
+			Err(msg) => assert_eq!(msg, "Could not convert String into Thing"),
+			_ => (),
+		}
 	}
 }
